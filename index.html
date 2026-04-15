@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>計算が大っ嫌いなあなたへ</title>
+<title>計算が大っ嫌いな君へ</title>
 
 <style>
 body {
@@ -53,15 +53,24 @@ input {
 <h2>出発時間計算ツール</h2>
 
 <!-- 施設数 -->
-<label>施設数</label><br>
-<input type="number" id="count" placeholder="例: 3">
+<label>施設数を入力</label><br>
+<input type="number" id="count" value="1" placeholder="例: 3">
 
 <!-- 表 -->
 <div id="table" class="table"></div>
 
-<!-- 到着時間 -->
+<!-- 集結時間 -->
 <div style="margin-top:30px;">
-  <label>到着時間 (hh:mm:ss)</label><br>
+  <label>集結時間を入力（集結主の場合のみ）</label><br>
+  <div style="display:flex; align-items:center; gap:5px;">
+    <input type="number" id="gather" placeholder="例: 5">
+    <span>分</span>
+  </div>
+</div>
+
+<!-- 到着時間 -->
+<div style="margin-top:10px;">
+  <label>到着時間(hh:mm:ss)を入力</label><br>
   <input type="text" id="arrival" placeholder="12:00:00">
 </div>
 
@@ -74,7 +83,7 @@ function formatTimeInput(value) {
 
   if (numbers.length >= 2) {
     result += numbers.slice(0, 2);
-    result += ":"; // ←ここで即コロン
+    result += ":";
   } else {
     return numbers;
   }
@@ -127,11 +136,11 @@ function createTable() {
 
     row.innerHTML = `
       <div class="left">
-        <input type="text" placeholder="施設名">
+        <input type="text" placeholder="施設名（例：太陽城）">
         <input type="text" placeholder="所要時間 (hh:mm:ss)" class="duration">
       </div>
       <div class="right">
-        出発時間：<span class="time">--:--:--</span>
+        出発時間は<span class="time">--:--:--</span>
       </div>
     `;
 
@@ -139,32 +148,34 @@ function createTable() {
 
     durationInput.addEventListener("input", function(e) {
       e.target.value = formatTimeInput(e.target.value);
-
-      if (e.target.value.length === 8) {
-        calcAll();
-      }
+      if (e.target.value.length === 8) calcAll();
     });
 
     table.appendChild(row);
   }
 }
 
-// ===== 到着時間 =====
+// ===== 入力イベント =====
 document.getElementById("arrival").addEventListener("input", function(e) {
   e.target.value = formatTimeInput(e.target.value);
+  if (e.target.value.length === 8) calcAll();
+});
 
-  if (e.target.value.length === 8) {
-    calcAll();
-  }
+document.getElementById("gather").addEventListener("input", function() {
+  calcAll();
 });
 
 // ===== 計算 =====
 function calcAll() {
   let arrivalStr = document.getElementById("arrival").value;
-
   if (arrivalStr.length !== 8) return;
 
   let arrival = toSeconds(arrivalStr);
+
+  // 集結時間（分→秒）
+  let gatherMin = Number(document.getElementById("gather").value) || 0;
+  let gatherSec = gatherMin * 60;
+
   let rows = document.querySelectorAll(".row");
 
   rows.forEach(row => {
@@ -177,11 +188,20 @@ function calcAll() {
     }
 
     let duration = toSeconds(durationStr);
-    let departure = arrival - duration;
+
+    // ★ここが追加ポイント
+    let total = duration + gatherSec;
+
+    let departure = arrival - total;
 
     timeSpan.innerText = toTimeStr(departure);
   });
 }
+
+// 初期テーブル生成
+window.addEventListener("DOMContentLoaded", () => {
+  createTable();
+});
 </script>
 
 </body>
