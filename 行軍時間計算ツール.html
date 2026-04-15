@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>計算が大っ嫌いなあなたへ</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 40px;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.left {
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.right {
+  margin-left: 40px;
+}
+
+.time {
+  font-size: 32px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+input {
+  margin: 3px 0;
+  padding: 5px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>出発時間計算ツール</h2>
+
+<!-- 施設数 -->
+<label>施設数</label><br>
+<input type="number" id="count" placeholder="例: 3">
+
+<!-- 表 -->
+<div id="table" class="table"></div>
+
+<!-- 到着時間 -->
+<div style="margin-top:30px;">
+  <label>到着時間 (hh:mm:ss)</label><br>
+  <input type="text" id="arrival" placeholder="12:00:00">
+</div>
+
+<script>
+// ===== 即コロン形式 =====
+function formatTimeInput(value) {
+  let numbers = value.replace(/\D/g, "").slice(0, 6);
+
+  let result = "";
+
+  if (numbers.length >= 2) {
+    result += numbers.slice(0, 2);
+    result += ":"; // ←ここで即コロン
+  } else {
+    return numbers;
+  }
+
+  if (numbers.length >= 4) {
+    result += numbers.slice(2, 4);
+    result += ":";
+  } else if (numbers.length > 2) {
+    result += numbers.slice(2);
+  }
+
+  if (numbers.length > 4) {
+    result += numbers.slice(4, 6);
+  }
+
+  return result;
+}
+
+// ===== 時間変換 =====
+function toSeconds(timeStr) {
+  let parts = timeStr.split(":");
+  if (parts.length !== 3) return null;
+  return Number(parts[0])*3600 + Number(parts[1])*60 + Number(parts[2]);
+}
+
+function toTimeStr(sec) {
+  sec = (sec + 86400) % 86400;
+  let h = Math.floor(sec / 3600);
+  let m = Math.floor((sec % 3600) / 60);
+  let s = sec % 60;
+
+  return (
+    String(h).padStart(2, '0') + ":" +
+    String(m).padStart(2, '0') + ":" +
+    String(s).padStart(2, '0')
+  );
+}
+
+// ===== 表生成 =====
+document.getElementById("count").addEventListener("input", createTable);
+
+function createTable() {
+  let count = Number(document.getElementById("count").value);
+  let table = document.getElementById("table");
+  table.innerHTML = "";
+
+  for (let i = 0; i < count; i++) {
+    let row = document.createElement("div");
+    row.className = "row";
+
+    row.innerHTML = `
+      <div class="left">
+        <input type="text" placeholder="施設名">
+        <input type="text" placeholder="所要時間 (hh:mm:ss)" class="duration">
+      </div>
+      <div class="right">
+        出発時間：<span class="time">--:--:--</span>
+      </div>
+    `;
+
+    let durationInput = row.querySelector(".duration");
+
+    durationInput.addEventListener("input", function(e) {
+      e.target.value = formatTimeInput(e.target.value);
+
+      if (e.target.value.length === 8) {
+        calcAll();
+      }
+    });
+
+    table.appendChild(row);
+  }
+}
+
+// ===== 到着時間 =====
+document.getElementById("arrival").addEventListener("input", function(e) {
+  e.target.value = formatTimeInput(e.target.value);
+
+  if (e.target.value.length === 8) {
+    calcAll();
+  }
+});
+
+// ===== 計算 =====
+function calcAll() {
+  let arrivalStr = document.getElementById("arrival").value;
+
+  if (arrivalStr.length !== 8) return;
+
+  let arrival = toSeconds(arrivalStr);
+  let rows = document.querySelectorAll(".row");
+
+  rows.forEach(row => {
+    let durationStr = row.querySelector(".duration").value;
+    let timeSpan = row.querySelector(".time");
+
+    if (durationStr.length !== 8) {
+      timeSpan.innerText = "--:--:--";
+      return;
+    }
+
+    let duration = toSeconds(durationStr);
+    let departure = arrival - duration;
+
+    timeSpan.innerText = toTimeStr(departure);
+  });
+}
+</script>
+
+</body>
+</html>
